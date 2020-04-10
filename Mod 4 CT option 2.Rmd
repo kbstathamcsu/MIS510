@@ -1,0 +1,78 @@
+---
+title: "Module 4 CT Option 2"
+author: "Kimberly Statham"
+date: "4/9/2020"
+output: 
+  word_document:
+    reference_docx: rmarkdown template.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(gains)
+library(caret)
+```
+
+>  Read in the RidingMowers csv file and explore it.  Run some stats on the income and Lot_size varibles and see if there are any missing values.
+
+```{r}
+mowers.df <- read.csv("~/RidingMowers.csv")
+dim(mowers.df)
+head(mowers.df)
+summary(mowers.df)
+View(mowers.df)
+data.frame(mean=sapply(mowers.df[,c(1,2)], mean, na.rm=TRUE), 
+           sd=sapply(mowers.df[,c(1,2)], sd, na.rm=TRUE), 
+           min=sapply(mowers.df[,c(1,2)], min, na.rm=TRUE), 
+           max=sapply(mowers.df[,c(1,2)], max, na.rm=TRUE), 
+           median=sapply(mowers.df[,c(1,2)], median, na.rm=TRUE), 
+           length=sapply(mowers.df[,c(1,2)], length),
+           miss.val=sapply(mowers.df[,c(1,2)], function(x) 
+             sum(length(which(is.na(x))))))
+```
+
+> run logistic regression.  Use glm() (general linear model) with family = "binomial" to fit a logistic regression.
+
+```{r}
+logit.reg <- glm(Ownership ~ ., data = mowers.df, family = "binomial") 
+options(scipen=999)
+summary(logit.reg)
+
+```
+> run the predict function using the logit data and then run the gains function using the predict data.  Generate a confusion matrix of predictions vs actuals and then generate a lift plot of the gains data
+
+```{r}
+
+pred <- predict(logit.reg, mowers.df)
+
+# Convert Ownership to zeroes and ones
+mowers.df$Ownership <- 1 * (mowers.df$Ownership == "Owner")
+
+gain <- gains(mowers.df$Ownership, pred, groups=24)
+
+confusionMatrix(as.factor(ifelse(pred > 0.5, 1, 0)), as.factor(mowers.df$Ownership))
+
+plot(c(0,gain$cume.pct.of.total*sum(mowers.df$Ownership))~
+       c(0,gain$cume.obs), 
+     xlab="# cases", ylab="Cumulative", main="", type="l")
+lines(c(0,sum(mowers.df$Ownership))~c(0, dim(mowers.df)[1]), lty=2)
+
+
+```
+
+##### Module 4: Critical Thinking-Option #2 
+	In this assignment a logistic regression method was executed to predict who is likely to own a riding lawn mower based on variable predictors annual income and lot size.  The logistic regression function that was used was glm().  Using the coefficients from the results of the glm function, an estimated logistic equation was formed.  The model performance was then displayed as a confusion matrix and as a lift plot.
+
+
+#### Option #2: Logistic Regression on Riding Mower Ownership
+
+	Using the coefficients produced from the glm function to manually write a logistic equation was a good exercise in  understanding the importance of the coefficients, as well as understanding what the predict function is doing. The manual estimated logistic equation is the following: 
+  
+_Logit(Ownership=Yes) = -25.9382 + 0.1109 Income + 0.9638 Lot_Size_
+  
+	Converting the factor variable Ownership into a zero or one was a vital thing to learn.  I foresee that this is  something that needs to be done rather often.  The results from the gains function is still a little unclear.  I reviewed the documentation for this in rdocumentation.org and that helped a little.  I noticed that the gains class has a lift and cume.lift variable but those are not used when generating the lift plot.  I like the results from the Confusion Matrix as they are easy to understand.
+	
+	In summary, this was a good exercise for enhancing my understanding of logistic regression and also for improving my R   coding skills.
+
+	
+
